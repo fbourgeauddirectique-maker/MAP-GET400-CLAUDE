@@ -59,21 +59,26 @@ de l'application tierce, pas de ce projet.
 
 ## Zones réglementaires (ZTD / AZD / ZND)
 
-Le menu (section « 3. Zones réglementaires ») propose trois cases à cocher
-pour superposer sur la carte les contours des zones fournies :
-- **ZTD** (turquoise) — zone continue avec une exclusion interne
-- **AZD** (corail) — 13 secteurs disjoints
-- **ZND** (bleu) — 30 secteurs disjoints
+Le menu (section « 3. Zones réglementaires ») propose :
+- Un **sélecteur de ville** (Paris, Béthune, Nantes — d'autres villes pourront être
+  ajoutées de la même façon)
+- Trois cases à cocher pour superposer sur la carte les contours de la ville
+  sélectionnée : **ZTD** (turquoise), **AZD** (corail), **ZND** (bleu)
 
-Chaque zone se charge à la demande (au premier affichage) depuis son
-fichier `.geojson` dans `zones/`, puis reste en mémoire pour les bascules
-suivantes. Une légende apparaît en haut à droite de la carte tant qu'au
-moins une zone est active.
+Changer de ville désactive et décoche automatiquement les zones affichées de
+l'ancienne ville, pour éviter de superposer des contours de villes différentes
+par erreur.
 
-Si vous mettez à jour les contours plus tard, régénérez les fichiers
-`.geojson` à partir des `.kml` sources et remplacez-les dans `zones/` —
-la structure attendue est une `FeatureCollection` standard, un `Feature`
-par secteur.
+Chaque zone se charge à la demande (au premier affichage) depuis son fichier
+`.geojson` dans `zones/`, nommé `<ville>_<type>.geojson` (ex. `paris_ztd.geojson`,
+`bethune_azd.geojson`, `nantes_znd.geojson`), puis reste en mémoire pour les
+bascules suivantes. Une légende apparaît en haut à droite de la carte tant
+qu'au moins une zone est active, précisant la ville et le type.
+
+Pour ajouter une nouvelle ville : générez ses 3 fichiers `.geojson` au format
+`<ville>_ztd.geojson` / `<ville>_azd.geojson` / `<ville>_znd.geojson`, déposez-les
+dans `zones/`, puis ajoutez une `<option>` correspondante dans le menu déroulant
+« Ville » du fichier `index.html`.
 
 ## Sauvegarde des données
 

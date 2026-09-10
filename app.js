@@ -34,15 +34,17 @@
   let activePointId = null;
 
   // ---------------------------------------------------------
-  // ZONES REGLEMENTAIRES (ZTD / AZD / ZND)
+  // ZONES REGLEMENTAIRES (ZTD / AZD / ZND) — multi-villes
   // ---------------------------------------------------------
-  const ZONE_CONFIG = {
-    ztd: { file: "zones/ztd.geojson", color: "#0E8F7E", label: "ZTD" },
-    azd: { file: "zones/azd.geojson", color: "#E85D3D", label: "AZD" },
-    znd: { file: "zones/znd.geojson", color: "#2563EB", label: "ZND" }
+  const ZONE_TYPES = {
+    ztd: { color: "#0E8F7E", label: "ZTD" },
+    azd: { color: "#E85D3D", label: "AZD" },
+    znd: { color: "#2563EB", label: "ZND" }
   };
-  const zoneLayers = {}; // key -> L.GeoJSON | null
-  const zoneDataCache = {}; // key -> geojson deja charge
+  const CITY_LABELS = { paris: "Paris", bethune: "Béthune", nantes: "Nantes" };
+  let currentZoneCity = "paris";
+  const zoneLayers = {}; // "city:type" -> L.GeoJSON
+  const zoneDataCache = {}; // "city:type" -> geojson deja charge
 
   // ---------------------------------------------------------
   // PERSISTANCE LOCALE
@@ -394,41 +396,44 @@
   // ZONES REGLEMENTAIRES — chargement et affichage
   // ---------------------------------------------------------
   async function toggleZone(zoneKey, show) {
-    const cfg = ZONE_CONFIG[zoneKey];
-    if (!cfg) return;
+    const typeCfg = ZONE_TYPES[zoneKey];
+    if (!typeCfg) return;
+    const city = currentZoneCity;
+    const cacheKey = `${city}:${zoneKey}`;
+    const file = `zones/${city}_${zoneKey}.geojson`;
 
     if (show) {
-      if (!zoneLayers[zoneKey]) {
-        setStatusText(`Chargement de la zone ${cfg.label}...`);
+      if (!zoneLayers[cacheKey]) {
+        setStatusText(`Chargement de la zone ${typeCfg.label} (${CITY_LABELS[city]})...`);
         try {
-          if (!zoneDataCache[zoneKey]) {
-            const res = await fetch(cfg.file);
+          if (!zoneDataCache[cacheKey]) {
+            const res = await fetch(file);
             if (!res.ok) throw new Error("Fichier introuvable");
-            zoneDataCache[zoneKey] = await res.json();
+            zoneDataCache[cacheKey] = await res.json();
           }
-          const layer = L.geoJSON(zoneDataCache[zoneKey], {
+          const layer = L.geoJSON(zoneDataCache[cacheKey], {
             style: {
-              color: cfg.color,
+              color: typeCfg.color,
               weight: 1.8,
               opacity: 0.85,
-              fillColor: cfg.color,
+              fillColor: typeCfg.color,
               fillOpacity: 0.12
             }
           });
-          zoneLayers[zoneKey] = layer;
+          zoneLayers[cacheKey] = layer;
         } catch (err) {
-          console.error(`Erreur de chargement de la zone ${cfg.label}`, err);
-          showToast(`Impossible de charger la zone ${cfg.label}`);
+          console.error(`Erreur de chargement de la zone ${typeCfg.label} (${city})`, err);
+          showToast(`Impossible de charger la zone ${typeCfg.label} pour ${CITY_LABELS[city]}`);
           const checkbox = document.getElementById(`zone-toggle-${zoneKey}`);
           if (checkbox) checkbox.checked = false;
           setStatusText("");
           return;
         }
       }
-      zoneLayers[zoneKey].addTo(map);
+      zoneLayers[cacheKey].addTo(map);
       setStatusText("");
-    } else if (zoneLayers[zoneKey]) {
-      map.removeLayer(zoneLayers[zoneKey]);
+    } else if (zoneLayers[cacheKey]) {
+      map.removeLayer(zoneLayers[cacheKey]);
     }
 
     updateZoneLegend();
@@ -436,34 +441,56 @@
 
   function updateZoneLegend() {
     const legend = document.getElementById("map-legend");
-    const activeZones = Object.keys(ZONE_CONFIG).filter(
+    const activeEntries = Object.keys(zoneLayers).filter(
       (k) => zoneLayers[k] && map.hasLayer(zoneLayers[k])
     );
-    if (!activeZones.length) {
+    if (!activeEntries.length) {
       legend.hidden = true;
       legend.innerHTML = "";
       return;
     }
-    legend.innerHTML = activeZones
+    legend.innerHTML = activeEntries
       .map((k) => {
-        const cfg = ZONE_CONFIG[k];
+        const [city, type] = k.split(":");
+        const typeCfg = ZONE_TYPES[type];
         return `<div class="map-legend-item">
-          <span class="zone-swatch" style="background:${cfg.color}33;border-color:${cfg.color}"></span>
-          ${cfg.label}
+          <span class="zone-swatch" style="background:${typeCfg.color}33;border-color:${typeCfg.color}"></span>
+          ${typeCfg.label} — ${CITY_LABELS[city]}
         </div>`;
       })
       .join("");
     legend.hidden = false;
   }
 
+  function clearAllZoneLayers() {
+    Object.keys(zoneLayers).forEach((k) => {
+      if (zoneLayers[k] && map.hasLayer(zoneLayers[k])) {
+        map.removeLayer(zoneLayers[k]);
+      }
+    });
+    Object.keys(ZONE_TYPES).forEach((zoneKey) => {
+      const checkbox = document.getElementById(`zone-toggle-${zoneKey}`);
+      if (checkbox) checkbox.checked = false;
+    });
+    updateZoneLegend();
+  }
+
   function bindZoneToggles() {
-    Object.keys(ZONE_CONFIG).forEach((zoneKey) => {
+    Object.keys(ZONE_TYPES).forEach((zoneKey) => {
       const checkbox = document.getElementById(`zone-toggle-${zoneKey}`);
       if (!checkbox) return;
       checkbox.addEventListener("change", (e) => {
         toggleZone(zoneKey, e.target.checked);
       });
     });
+
+    const citySelect = document.getElementById("zone-city-select");
+    if (citySelect) {
+      citySelect.addEventListener("change", (e) => {
+        clearAllZoneLayers();
+        currentZoneCity = e.target.value;
+      });
+    }
   }
 
   // ---------------------------------------------------------
