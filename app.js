@@ -614,6 +614,22 @@
   // Ici on tente l'appel direct (fonctionne via la lib JS officielle
   // chargée séparément si nécessaire) — voir README pour le détail.
 
+  async function recalculateAllRoutes() {
+    if (!state.settings.apiKey) {
+      showToast("Ajoutez d'abord votre clé API Google dans le menu");
+      return;
+    }
+    if (!state.pairs.length) {
+      showToast("Aucune tournée importée pour le moment");
+      return;
+    }
+    showToast(`Recalcul de ${state.pairs.length} itinéraire(s) en cours...`);
+    for (const pair of state.pairs) {
+      await computeRouteForPair(pair.id);
+    }
+    showToast("Recalcul des itinéraires terminé");
+  }
+
   async function computeRouteForPair(pairId) {
     const pair = state.pairs.find((p) => p.id === pairId);
     if (!pair) return;
@@ -849,6 +865,7 @@
       if (e.target.files[0]) importStateFromFile(e.target.files[0]);
     });
     document.getElementById("btn-reset").addEventListener("click", resetTournee);
+    document.getElementById("btn-recalculate-routes").addEventListener("click", recalculateAllRoutes);
 
     document.getElementById("drawer-handle").addEventListener("click", toggleDrawer);
 
