@@ -1,24 +1,26 @@
 /* ============================================================
-   CARTO GUIDAGE — design terrain / tableau de bord
-   Palette pensée pour usage extérieur, plein soleil, en mouvement.
+   CARTO GUIDAGE — design terrain, version vive
+   Lisibilité extérieure conservée, palette plus chaleureuse et
+   vivante pour un usage quotidien moins austère.
    ============================================================ */
 
 :root {
-  --ink: #12181B;           /* texte principal, quasi-noir bleuté */
-  --ink-soft: #4A565C;      /* texte secondaire */
-  --paper: #F6F5F1;         /* fond général, blanc cassé chaud */
-  --surface: #FFFFFF;       /* cartes / panneaux */
-  --line: #DEDBD2;          /* traits, séparateurs */
-  --signal: #1B5E4F;        /* vert profond — accent principal, action */
-  --signal-strong: #113D33;
-  --alert: #B3401E;         /* point non validé — rouille/rouge terre */
-  --alert-soft: #F4DED3;
-  --done: #2E7D4F;          /* point validé — vert */
-  --done-soft: #DCEBDF;
-  --amber: #B8860B;         /* alerte durée hors bornes */
-  --radius-s: 6px;
-  --radius-m: 10px;
-  --shadow: 0 4px 14px rgba(18, 24, 27, 0.16);
+  --ink: #182226;            /* texte principal, bleu-nuit doux */
+  --ink-soft: #566268;       /* texte secondaire */
+  --paper: #FBF6EC;          /* fond général, crème lumineux */
+  --surface: #FFFFFF;        /* cartes / panneaux */
+  --line: #E8DFC8;           /* traits, séparateurs */
+  --signal: #0E8F7E;         /* turquoise profond — accent principal, action */
+  --signal-strong: #0A6C5F;
+  --signal-bright: #17B39D;  /* variante claire pour dégradés */
+  --alert: #E85D3D;          /* point non validé — corail vif */
+  --alert-soft: #FCE1D6;
+  --done: #2FA968;           /* point validé — vert franc */
+  --done-soft: #DAF3E4;
+  --amber: #E0A429;          /* alerte durée hors bornes */
+  --radius-s: 10px;
+  --radius-m: 16px;
+  --shadow: 0 6px 18px rgba(24, 34, 38, 0.14);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   font-size: 16px;
@@ -64,13 +66,14 @@ html, body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px; height: 34px;
-  background: var(--signal);
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--signal-bright), var(--signal-strong));
   color: #fff;
   font-weight: 700;
   font-size: 0.85rem;
-  border-radius: var(--radius-s);
+  border-radius: 11px;
   letter-spacing: 0.02em;
+  box-shadow: 0 3px 8px rgba(14, 143, 126, 0.35);
 }
 
 .brand-name {
@@ -243,12 +246,13 @@ html, body {
 }
 
 .btn-primary {
-  background: var(--signal);
+  background: linear-gradient(135deg, var(--signal-bright), var(--signal));
   color: #fff;
   width: 100%;
   margin-top: 4px;
+  box-shadow: 0 4px 12px rgba(14, 143, 126, 0.3);
 }
-.btn-primary:active { background: var(--signal-strong); }
+.btn-primary:active { background: var(--signal-strong); box-shadow: none; }
 
 .btn-secondary {
   background: var(--paper);
@@ -281,8 +285,8 @@ html, body {
   left: 0; right: 0; bottom: 0;
   z-index: 400;
   background: var(--surface);
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
+  border-top-left-radius: 22px;
+  border-top-right-radius: 22px;
   box-shadow: 0 -6px 20px rgba(18,24,27,0.15);
   transform: translateY(calc(100% - 54px - var(--safe-bottom)));
   transition: transform 0.25s ease;
@@ -332,13 +336,17 @@ html, body {
 .point-row:last-child { border-bottom: none; }
 
 .point-dot {
-  width: 14px; height: 14px;
+  width: 15px; height: 15px;
   border-radius: 50%;
   flex-shrink: 0;
   background: var(--alert);
   border: 2px solid rgba(0,0,0,0.06);
+  box-shadow: 0 0 0 3px var(--alert-soft);
 }
-.point-dot.validated { background: var(--done); }
+.point-dot.validated {
+  background: var(--done);
+  box-shadow: 0 0 0 3px var(--done-soft);
+}
 
 .point-row-text { flex: 1; min-width: 0; }
 .point-row-name {
@@ -374,8 +382,8 @@ html, body {
   left: 0; right: 0; bottom: 0;
   z-index: 950;
   background: var(--surface);
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
+  border-top-left-radius: 22px;
+  border-top-right-radius: 22px;
   box-shadow: 0 -6px 24px rgba(18,24,27,0.22);
   padding-bottom: var(--safe-bottom);
 }
@@ -454,11 +462,11 @@ html, body {
 
 /* ---------- MARQUEURS LEAFLET PERSONNALISÉS ---------- */
 .cg-marker {
-  width: 26px; height: 26px;
+  width: 28px; height: 28px;
   border-radius: 50% 50% 50% 0;
   transform: rotate(-45deg);
-  border: 2px solid #fff;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  border: 3px solid #fff;
+  box-shadow: 0 3px 8px rgba(24, 34, 38, 0.35);
 }
 .cg-marker.pending { background: var(--alert); }
 .cg-marker.validated { background: var(--done); }
