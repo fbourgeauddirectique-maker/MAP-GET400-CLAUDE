@@ -37,7 +37,8 @@
         <label class="file-input-label" for="excel-input">
           Choisir un fichier Excel (.xlsx / .xls)
         </label>
-        <input type="file" id="excel-input" accept=".xlsx,.xls" hidden>
+        <input type="file" id="excel-input" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" hidden>
+        <div class="field-hint">Si le fichier reste grisé sur iPhone, essayez de l'exporter en CSV depuis l'app source, ou vérifiez qu'il est bien enregistré localement (pas juste "récent" dans iCloud).</div>
         <div id="import-summary" class="import-summary"></div>
       </section>
 
