@@ -279,6 +279,63 @@ html, body {
 
 .btn-full { width: 100%; }
 
+/* ---------- BASCULES DE ZONES ---------- */
+.zone-toggle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.zone-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.zone-toggle input[type="checkbox"] {
+  width: 18px; height: 18px;
+  accent-color: var(--signal);
+  cursor: pointer;
+}
+
+.zone-swatch {
+  width: 16px; height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  border: 1.5px solid rgba(0,0,0,0.15);
+}
+.zone-swatch-ztd { background: rgba(14, 143, 126, 0.35); border-color: #0E8F7E; }
+.zone-swatch-azd { background: rgba(232, 93, 61, 0.35); border-color: #E85D3D; }
+.zone-swatch-znd { background: rgba(37, 99, 235, 0.35); border-color: #2563EB; }
+
+/* ---------- LEGENDE CARTE (zones actives) ---------- */
+.map-legend {
+  position: fixed;
+  top: calc(96px + var(--safe-top));
+  right: 10px;
+  z-index: 350;
+  background: var(--surface);
+  border-radius: var(--radius-s);
+  box-shadow: var(--shadow);
+  padding: 10px 12px;
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 150px;
+}
+
+.map-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-soft);
+}
+
 /* ---------- TIROIR LISTE DES POINTS ---------- */
 .points-drawer {
   position: fixed;

@@ -56,7 +56,29 @@
       </section>
 
       <section class="panel-section">
-        <h3>3. Paramètres trajet</h3>
+        <h3>3. Zones réglementaires</h3>
+        <div class="zone-toggle-list">
+          <label class="zone-toggle">
+            <input type="checkbox" id="zone-toggle-ztd" data-zone="ztd">
+            <span class="zone-swatch zone-swatch-ztd"></span>
+            ZTD
+          </label>
+          <label class="zone-toggle">
+            <input type="checkbox" id="zone-toggle-azd" data-zone="azd">
+            <span class="zone-swatch zone-swatch-azd"></span>
+            AZD
+          </label>
+          <label class="zone-toggle">
+            <input type="checkbox" id="zone-toggle-znd" data-zone="znd">
+            <span class="zone-swatch zone-swatch-znd"></span>
+            ZND
+          </label>
+        </div>
+        <div id="zones-status" class="field-hint"></div>
+      </section>
+
+      <section class="panel-section">
+        <h3>4. Paramètres trajet</h3>
         <div class="field-row">
           <label class="field-label">Min (min)
             <input type="number" id="dur-min" value="15" min="1">
@@ -72,7 +94,7 @@
       </section>
 
       <section class="panel-section">
-        <h3>4. Sauvegarde</h3>
+        <h3>5. Sauvegarde</h3>
         <div class="btn-group">
           <button id="btn-export" class="btn-secondary">Exporter (JSON)</button>
           <label class="btn-secondary file-input-label" for="json-input">Importer (JSON)</label>
@@ -97,6 +119,7 @@
 
   <!-- ===== CARTE ===== -->
   <main id="map"></main>
+  <div id="map-legend" class="map-legend" hidden></div>
 
   <!-- ===== FICHE POINT (modale bas d'écran) ===== -->
   <div id="point-sheet" class="point-sheet" hidden>

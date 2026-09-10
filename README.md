@@ -1,12 +1,15 @@
 # Carto Guidage
 
 Application web pour mesures terrain sur deux points, avec carte GPS,
-import Excel, itinéraires calibrés en durée et sauvegarde locale.
+import Excel, itinéraires calibrés en durée, affichage des zones
+réglementaires (ZTD / AZD / ZND) et sauvegarde locale.
 
 ## Mise en ligne sur GitHub Pages
 
 1. Créez un dépôt GitHub (ex. `carto-guidage`).
-2. Déposez-y les 3 fichiers : `index.html`, `style.css`, `app.js`.
+2. Déposez-y les 3 fichiers `index.html`, `style.css`, `app.js`, ainsi que
+   le sous-dossier **`zones/`** (contenant `ztd.geojson`, `azd.geojson`,
+   `znd.geojson`) en conservant cette arborescence.
 3. Dans **Settings → Pages**, activez GitHub Pages sur la branche `main`, dossier `/root`.
 4. L'application sera accessible à `https://<votre-compte>.github.io/carto-guidage/`.
 5. Sur iPhone, ouvrez ce lien dans Safari, puis **Partager → Sur l'écran d'accueil**
@@ -53,6 +56,24 @@ longitude).
 vous écartez de l'itinéraire proposé, Google Maps recalculera le chemin le
 plus rapide et la contrainte de durée ne sera plus respectée. C'est une limite
 de l'application tierce, pas de ce projet.
+
+## Zones réglementaires (ZTD / AZD / ZND)
+
+Le menu (section « 3. Zones réglementaires ») propose trois cases à cocher
+pour superposer sur la carte les contours des zones fournies :
+- **ZTD** (turquoise) — zone continue avec une exclusion interne
+- **AZD** (corail) — 13 secteurs disjoints
+- **ZND** (bleu) — 30 secteurs disjoints
+
+Chaque zone se charge à la demande (au premier affichage) depuis son
+fichier `.geojson` dans `zones/`, puis reste en mémoire pour les bascules
+suivantes. Une légende apparaît en haut à droite de la carte tant qu'au
+moins une zone est active.
+
+Si vous mettez à jour les contours plus tard, régénérez les fichiers
+`.geojson` à partir des `.kml` sources et remplacez-les dans `zones/` —
+la structure attendue est une `FeatureCollection` standard, un `Feature`
+par secteur.
 
 ## Sauvegarde des données
 

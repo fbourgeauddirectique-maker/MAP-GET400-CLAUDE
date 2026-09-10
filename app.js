@@ -34,6 +34,17 @@
   let activePointId = null;
 
   // ---------------------------------------------------------
+  // ZONES REGLEMENTAIRES (ZTD / AZD / ZND)
+  // ---------------------------------------------------------
+  const ZONE_CONFIG = {
+    ztd: { file: "zones/ztd.geojson", color: "#0E8F7E", label: "ZTD" },
+    azd: { file: "zones/azd.geojson", color: "#E85D3D", label: "AZD" },
+    znd: { file: "zones/znd.geojson", color: "#2563EB", label: "ZND" }
+  };
+  const zoneLayers = {}; // key -> L.GeoJSON | null
+  const zoneDataCache = {}; // key -> geojson deja charge
+
+  // ---------------------------------------------------------
   // PERSISTANCE LOCALE
   // ---------------------------------------------------------
   function saveState() {
@@ -377,6 +388,82 @@
     activePointId = pointId;
     map.panTo([pt.lat, pt.lng]);
     openPointSheet(pt);
+  }
+
+  // ---------------------------------------------------------
+  // ZONES REGLEMENTAIRES — chargement et affichage
+  // ---------------------------------------------------------
+  async function toggleZone(zoneKey, show) {
+    const cfg = ZONE_CONFIG[zoneKey];
+    if (!cfg) return;
+
+    if (show) {
+      if (!zoneLayers[zoneKey]) {
+        setStatusText(`Chargement de la zone ${cfg.label}...`);
+        try {
+          if (!zoneDataCache[zoneKey]) {
+            const res = await fetch(cfg.file);
+            if (!res.ok) throw new Error("Fichier introuvable");
+            zoneDataCache[zoneKey] = await res.json();
+          }
+          const layer = L.geoJSON(zoneDataCache[zoneKey], {
+            style: {
+              color: cfg.color,
+              weight: 1.8,
+              opacity: 0.85,
+              fillColor: cfg.color,
+              fillOpacity: 0.12
+            }
+          });
+          zoneLayers[zoneKey] = layer;
+        } catch (err) {
+          console.error(`Erreur de chargement de la zone ${cfg.label}`, err);
+          showToast(`Impossible de charger la zone ${cfg.label}`);
+          const checkbox = document.getElementById(`zone-toggle-${zoneKey}`);
+          if (checkbox) checkbox.checked = false;
+          setStatusText("");
+          return;
+        }
+      }
+      zoneLayers[zoneKey].addTo(map);
+      setStatusText("");
+    } else if (zoneLayers[zoneKey]) {
+      map.removeLayer(zoneLayers[zoneKey]);
+    }
+
+    updateZoneLegend();
+  }
+
+  function updateZoneLegend() {
+    const legend = document.getElementById("map-legend");
+    const activeZones = Object.keys(ZONE_CONFIG).filter(
+      (k) => zoneLayers[k] && map.hasLayer(zoneLayers[k])
+    );
+    if (!activeZones.length) {
+      legend.hidden = true;
+      legend.innerHTML = "";
+      return;
+    }
+    legend.innerHTML = activeZones
+      .map((k) => {
+        const cfg = ZONE_CONFIG[k];
+        return `<div class="map-legend-item">
+          <span class="zone-swatch" style="background:${cfg.color}33;border-color:${cfg.color}"></span>
+          ${cfg.label}
+        </div>`;
+      })
+      .join("");
+    legend.hidden = false;
+  }
+
+  function bindZoneToggles() {
+    Object.keys(ZONE_CONFIG).forEach((zoneKey) => {
+      const checkbox = document.getElementById(`zone-toggle-${zoneKey}`);
+      if (!checkbox) return;
+      checkbox.addEventListener("change", (e) => {
+        toggleZone(zoneKey, e.target.checked);
+      });
+    });
   }
 
   // ---------------------------------------------------------
@@ -743,6 +830,7 @@
     document.getElementById("sheet-navigate").addEventListener("click", navigateToActivePoint);
 
     bindSettingsInputs();
+    bindZoneToggles();
   }
 
   function init() {
