@@ -41,7 +41,7 @@
     azd: { color: "#E85D3D", label: "AZD" },
     znd: { color: "#2563EB", label: "ZND" }
   };
-  const CITY_LABELS = { paris: "Paris", bethune: "Béthune", nantes: "Nantes", "douai-lens": "Douai-Lens" };
+  const CITY_LABELS = { paris: "Paris", bethune: "Béthune", nantes: "Nantes", "douai-lens": "Douai-Lens", angers: "Angers", pau: "Pau", toulouse: "Toulouse" };
   let currentZoneCity = "paris";
   const zoneLayers = {}; // "city:type" -> L.GeoJSON
   const zoneDataCache = {}; // "city:type" -> geojson deja charge
