@@ -53,6 +53,9 @@
         <label class="field-label">Colonne — Longitude
           <select id="col-lng"></select>
         </label>
+        <label class="field-label">Colonne — Ville (optionnel)
+          <select id="col-city"></select>
+        </label>
         <button id="btn-apply-mapping" class="btn-primary">Valider l'import</button>
       </section>
 
@@ -127,6 +130,11 @@
       <span class="drawer-grip"></span>
       <span id="drawer-title">Points de la tournée (0)</span>
     </button>
+    <div id="city-filter-bar" class="city-filter-bar" hidden>
+      <label class="field-label">Ville affichée
+        <select id="city-filter-select"></select>
+      </label>
+    </div>
     <div id="points-list" class="points-list"></div>
   </div>
 

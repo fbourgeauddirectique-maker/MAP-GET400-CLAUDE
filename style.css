@@ -377,6 +377,17 @@ html, body {
   background: var(--line);
 }
 
+.city-filter-bar {
+  padding: 0 14px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.city-filter-bar .field-label {
+  margin-bottom: 0;
+}
+.city-filter-bar select {
+  margin-top: 4px;
+}
+
 .points-list {
   overflow-y: auto;
   padding: 0 12px 14px;

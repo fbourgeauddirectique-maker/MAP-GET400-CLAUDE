@@ -32,6 +32,7 @@
   const routeLayers = new Map(); // pairId -> L.Polyline
   let watchId = null;
   let activePointId = null;
+  let activeCityFilter = null; // null = toutes les villes
 
   // ---------------------------------------------------------
   // ZONES REGLEMENTAIRES (ZTD / AZD / ZND) — multi-villes
@@ -98,6 +99,7 @@
         );
         saveState();
         applySettingsToUI();
+        updateCityFilterOptions();
         rebuildMapFromState();
         renderPointsList();
         showToast("Tournée restaurée depuis le fichier");
@@ -147,18 +149,71 @@
     document.getElementById("points-drawer").classList.toggle("expanded");
   }
 
+  // ---------------------------------------------------------
+  // FILTRE PAR VILLE
+  // ---------------------------------------------------------
+  function updateCityFilterOptions() {
+    const bar = document.getElementById("city-filter-bar");
+    const select = document.getElementById("city-filter-select");
+    const cities = Array.from(
+      new Set(state.points.map((p) => p.city).filter(Boolean))
+    ).sort();
+
+    if (cities.length < 2) {
+      bar.hidden = true;
+      activeCityFilter = null;
+      return;
+    }
+
+    bar.hidden = false;
+    select.innerHTML = "";
+    const allOpt = document.createElement("option");
+    allOpt.value = "";
+    allOpt.textContent = `Toutes les villes (${state.points.length})`;
+    select.appendChild(allOpt);
+    cities.forEach((city) => {
+      const count = state.points.filter((p) => p.city === city).length;
+      const opt = document.createElement("option");
+      opt.value = city;
+      opt.textContent = `${city} (${count})`;
+      select.appendChild(opt);
+    });
+    select.value = activeCityFilter || "";
+  }
+
+  function setCityFilter(city) {
+    activeCityFilter = city || null;
+    rebuildMapFromState();
+    renderPointsList();
+  }
+
   function renderPointsList() {
     const list = document.getElementById("points-list");
     const title = document.getElementById("drawer-title");
-    title.textContent = `Points de la tournée (${state.points.length})`;
+
+    const visiblePoints = state.points.filter(
+      (pt) => !activeCityFilter || pt.city === activeCityFilter
+    );
+    const visibleIds = new Set(visiblePoints.map((p) => p.id));
+    const visiblePairs = state.pairs.filter((pair) =>
+      pair.pointIds.every((id) => visibleIds.has(id))
+    );
+
+    title.textContent = activeCityFilter
+      ? `Points — ${activeCityFilter} (${visiblePoints.length})`
+      : `Points de la tournée (${state.points.length})`;
 
     if (state.points.length === 0) {
       list.innerHTML = `<div class="empty-state">Aucun point importé pour le moment.<br>Ouvrez le menu pour importer un fichier Excel.</div>`;
       return;
     }
+    if (visiblePoints.length === 0) {
+      list.innerHTML = `<div class="empty-state">Aucun point pour cette ville.</div>`;
+      return;
+    }
 
     list.innerHTML = "";
-    state.pairs.forEach((pair, pairIdx) => {
+    visiblePairs.forEach((pair, pairIdx) => {
       pair.pointIds.forEach((pid, idxInPair) => {
         const pt = state.points.find((p) => p.id === pid);
         if (!pt) return;
@@ -227,10 +282,18 @@
     const selName = document.getElementById("col-name");
     const selLat = document.getElementById("col-lat");
     const selLng = document.getElementById("col-lng");
+    const selCity = document.getElementById("col-city");
     [selName, selLat, selLng].forEach((sel) => (sel.innerHTML = ""));
+    selCity.innerHTML = "";
+
+    // Option "aucune" pour la colonne ville, qui reste optionnelle
+    const noneOpt = document.createElement("option");
+    noneOpt.value = "";
+    noneOpt.textContent = "— Aucune —";
+    selCity.appendChild(noneOpt);
 
     headers.forEach((h) => {
-      [selName, selLat, selLng].forEach((sel) => {
+      [selName, selLat, selLng, selCity].forEach((sel) => {
         const opt = document.createElement("option");
         opt.value = h;
         opt.textContent = h;
@@ -242,6 +305,7 @@
     guessColumn(selName, headers, ["nom", "name", "point", "site", "label"]);
     guessColumn(selLat, headers, ["lat", "latitude"]);
     guessColumn(selLng, headers, ["lon", "lng", "long", "longitude"]);
+    guessColumn(selCity, headers, ["ville", "city", "agglo"]);
   }
 
   function guessColumn(selectEl, headers, keywords) {
@@ -256,6 +320,7 @@
     const nameCol = document.getElementById("col-name").value;
     const latCol = document.getElementById("col-lat").value;
     const lngCol = document.getElementById("col-lng").value;
+    const cityCol = document.getElementById("col-city").value; // peut être vide
 
     const rows = state.rawImport.rows;
     const newPoints = [];
@@ -265,6 +330,7 @@
       const lat = parseFloat(String(row[latCol]).replace(",", "."));
       const lng = parseFloat(String(row[lngCol]).replace(",", "."));
       const name = String(row[nameCol] ?? "").trim();
+      const city = cityCol ? String(row[cityCol] ?? "").trim() : "";
       if (!name || isNaN(lat) || isNaN(lng)) {
         skipped++;
         return;
@@ -274,6 +340,7 @@
         name,
         lat,
         lng,
+        city: city || null,
         pairId: "",
         pairIndex: 0,
         status: "pending",
@@ -302,6 +369,7 @@
     state.points = newPoints.slice(0, pairs.length * 2);
     state.pairs = pairs;
     saveState();
+    updateCityFilterOptions();
     rebuildMapFromState();
     renderPointsList();
     document.getElementById("column-mapping").hidden = true;
@@ -347,8 +415,12 @@
     routeLayers.forEach((l) => map.removeLayer(l));
     routeLayers.clear();
 
+    const visiblePoints = state.points.filter(
+      (pt) => !activeCityFilter || pt.city === activeCityFilter
+    );
+
     const bounds = [];
-    state.points.forEach((pt) => {
+    visiblePoints.forEach((pt) => {
       const marker = L.marker([pt.lat, pt.lng], { icon: markerIcon(pt.status) }).addTo(map);
       marker.on("click", () => focusPoint(pt.id));
       pointLayers.set(pt.id, marker);
@@ -359,8 +431,10 @@
       map.fitBounds(bounds, { padding: [60, 60] });
     }
 
-    // Redessine les itinéraires déjà calculés
+    // Redessine les itinéraires déjà calculés (paires visibles uniquement)
+    const visibleIds = new Set(visiblePoints.map((p) => p.id));
     state.pairs.forEach((pair) => {
+      if (!pair.pointIds.every((id) => visibleIds.has(id))) return;
       const a = state.points.find((p) => p.id === pair.pointIds[0]);
       if (a && a.route && a.route.polyline) {
         drawRoutePolyline(pair.id, a.route.polyline);
@@ -840,6 +914,7 @@
     state.pairs = [];
     state.rawImport = null;
     saveState();
+    updateCityFilterOptions();
     rebuildMapFromState();
     renderPointsList();
     closePointSheet();
@@ -875,6 +950,11 @@
 
     bindSettingsInputs();
     bindZoneToggles();
+
+    const cityFilterSelect = document.getElementById("city-filter-select");
+    if (cityFilterSelect) {
+      cityFilterSelect.addEventListener("change", (e) => setCityFilter(e.target.value));
+    }
   }
 
   function init() {
@@ -883,6 +963,7 @@
     startGeolocation();
     bindEvents();
     applySettingsToUI();
+    updateCityFilterOptions();
     rebuildMapFromState();
     renderPointsList();
 
