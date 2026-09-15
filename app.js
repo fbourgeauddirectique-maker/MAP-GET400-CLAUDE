@@ -421,8 +421,13 @@
 
     const bounds = [];
     visiblePoints.forEach((pt) => {
-      const marker = L.marker([pt.lat, pt.lng], { icon: markerIcon(pt.status) }).addTo(map);
+      const marker = L.marker([pt.lat, pt.lng], {
+        icon: markerIcon(pt.status),
+        draggable: true,
+        autoPan: true
+      }).addTo(map);
       marker.on("click", () => focusPoint(pt.id));
+      marker.on("dragend", () => onPointDragged(pt.id, marker));
       pointLayers.set(pt.id, marker);
       bounds.push([pt.lat, pt.lng]);
     });
@@ -440,6 +445,33 @@
         drawRoutePolyline(pair.id, a.route.polyline);
       }
     });
+  }
+
+  function onPointDragged(pointId, marker) {
+    const pt = state.points.find((p) => p.id === pointId);
+    if (!pt) return;
+    const { lat, lng } = marker.getLatLng();
+    pt.lat = lat;
+    pt.lng = lng;
+
+    // L'itinéraire calculé pour la paire n'est plus valide après un déplacement
+    const pair = state.pairs.find((p) => p.id === pt.pairId);
+    if (pair) {
+      pair.pointIds.forEach((id) => {
+        const p2 = state.points.find((x) => x.id === id);
+        if (p2) p2.route = null;
+      });
+      if (routeLayers.has(pair.id)) {
+        map.removeLayer(routeLayers.get(pair.id));
+        routeLayers.delete(pair.id);
+      }
+    }
+
+    saveState();
+    showToast(`"${pt.name}" déplacé — itinéraire à recalculer`);
+    if (activePointId === pointId) {
+      openPointSheet(pt); // rafraîchit la fiche si elle est ouverte sur ce point
+    }
   }
 
   function drawRoutePolyline(pairId, latlngs) {
@@ -641,7 +673,34 @@
       statusBtn.classList.remove("is-validated");
     }
 
+    document.getElementById("sheet-coords-hint").innerHTML = `
+      <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 2C7.6 2 4 5.6 4 10c0 5.4 8 12 8 12s8-6.6 8-12c0-4.4-3.6-8-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z" fill="currentColor"/></svg>
+      ${pt.lat.toFixed(5)}, ${pt.lng.toFixed(5)} — maintenez et glissez le point sur la carte pour le déplacer
+    `;
+
+    const cityInput = document.getElementById("sheet-city-input");
+    cityInput.value = pt.city || "";
+
+    const commentInput = document.getElementById("sheet-comment");
+    commentInput.value = pt.comment || "";
+
     sheet.hidden = false;
+  }
+
+  function saveActivePointCity(value) {
+    const pt = state.points.find((p) => p.id === activePointId);
+    if (!pt) return;
+    pt.city = value.trim() || null;
+    saveState();
+    updateCityFilterOptions();
+    renderPointsList();
+  }
+
+  function saveActivePointComment(value) {
+    const pt = state.points.find((p) => p.id === activePointId);
+    if (!pt) return;
+    pt.comment = value.trim() || null;
+    saveState();
   }
 
   function closePointSheet() {
@@ -947,6 +1006,8 @@
     document.getElementById("sheet-close").addEventListener("click", closePointSheet);
     document.getElementById("sheet-toggle-status").addEventListener("click", toggleActivePointStatus);
     document.getElementById("sheet-navigate").addEventListener("click", navigateToActivePoint);
+    document.getElementById("sheet-city-input").addEventListener("change", (e) => saveActivePointCity(e.target.value));
+    document.getElementById("sheet-comment").addEventListener("change", (e) => saveActivePointComment(e.target.value));
 
     bindSettingsInputs();
     bindZoneToggles();

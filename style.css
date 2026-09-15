@@ -495,6 +495,48 @@ html, body {
 }
 .route-info .route-duration.warn { color: var(--amber); }
 
+.sheet-coords-hint {
+  margin-top: 10px;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sheet-coords-hint svg { flex-shrink: 0; }
+
+.sheet-comment-label {
+  margin-top: 14px;
+}
+.sheet-city-label {
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+.sheet-city-label input {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--paper);
+  color: var(--ink);
+}
+.sheet-comment-input {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--paper);
+  color: var(--ink);
+  resize: vertical;
+}
+
 .point-sheet-actions {
   margin-top: 16px;
   display: flex;
