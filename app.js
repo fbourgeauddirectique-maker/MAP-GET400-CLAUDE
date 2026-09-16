@@ -33,6 +33,8 @@
   let watchId = null;
   let activePointId = null;
   let activeCityFilter = null; // null = toutes les villes
+  let addPointMode = false;
+  let pendingNewPointLatLng = null;
 
   // ---------------------------------------------------------
   // ZONES REGLEMENTAIRES (ZTD / AZD / ZND) — multi-villes
@@ -222,8 +224,8 @@
         row.innerHTML = `
           <span class="point-dot ${pt.status === "validated" ? "validated" : ""}"></span>
           <span class="point-row-text">
-            <div class="point-row-name">${escapeHtml(pt.name)}</div>
-            <div class="point-row-meta">Paire ${pairIdx + 1} · Point ${idxInPair + 1}${pt.status === "validated" ? " · Validé" : ""}</div>
+            <div class="point-row-name">${escapeHtml(pt.name)}${pt.zone ? ` <span class="zone-badge zone-badge-${pt.zone.toLowerCase()}">${pt.zone}</span>` : ""}</div>
+            <div class="point-row-meta">${pair.pointIds.length === 1 ? "Ajouté manuellement" : `Paire ${pairIdx + 1} · Point ${idxInPair + 1}`}${pt.status === "validated" ? " · Validé" : ""}</div>
           </span>
           <span class="point-row-chevron">
             <svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -283,17 +285,21 @@
     const selLat = document.getElementById("col-lat");
     const selLng = document.getElementById("col-lng");
     const selCity = document.getElementById("col-city");
+    const selZone = document.getElementById("col-zone");
     [selName, selLat, selLng].forEach((sel) => (sel.innerHTML = ""));
     selCity.innerHTML = "";
+    selZone.innerHTML = "";
 
-    // Option "aucune" pour la colonne ville, qui reste optionnelle
-    const noneOpt = document.createElement("option");
-    noneOpt.value = "";
-    noneOpt.textContent = "— Aucune —";
-    selCity.appendChild(noneOpt);
+    // Option "aucune" pour les colonnes ville et zone, qui restent optionnelles
+    [selCity, selZone].forEach((sel) => {
+      const noneOpt = document.createElement("option");
+      noneOpt.value = "";
+      noneOpt.textContent = "— Aucune —";
+      sel.appendChild(noneOpt);
+    });
 
     headers.forEach((h) => {
-      [selName, selLat, selLng, selCity].forEach((sel) => {
+      [selName, selLat, selLng, selCity, selZone].forEach((sel) => {
         const opt = document.createElement("option");
         opt.value = h;
         opt.textContent = h;
@@ -306,6 +312,7 @@
     guessColumn(selLat, headers, ["lat", "latitude"]);
     guessColumn(selLng, headers, ["lon", "lng", "long", "longitude"]);
     guessColumn(selCity, headers, ["ville", "city", "agglo"]);
+    guessColumn(selZone, headers, ["zone", "strate", "ztd"]);
   }
 
   function guessColumn(selectEl, headers, keywords) {
@@ -321,6 +328,7 @@
     const latCol = document.getElementById("col-lat").value;
     const lngCol = document.getElementById("col-lng").value;
     const cityCol = document.getElementById("col-city").value; // peut être vide
+    const zoneCol = document.getElementById("col-zone").value; // peut être vide
 
     const rows = state.rawImport.rows;
     const newPoints = [];
@@ -331,6 +339,7 @@
       const lng = parseFloat(String(row[lngCol]).replace(",", "."));
       const name = String(row[nameCol] ?? "").trim();
       const city = cityCol ? String(row[cityCol] ?? "").trim() : "";
+      const zone = zoneCol ? String(row[zoneCol] ?? "").trim().toUpperCase() : "";
       if (!name || isNaN(lat) || isNaN(lng)) {
         skipped++;
         return;
@@ -341,6 +350,8 @@
         lat,
         lng,
         city: city || null,
+        zone: ["ZTD", "AZD", "ZND"].includes(zone) ? zone : null,
+        comment: null,
         pairId: "",
         pairIndex: 0,
         status: "pending",
@@ -395,6 +406,7 @@
       attribution: "&copy; OpenStreetMap"
     }).addTo(map);
     L.control.zoom({ position: "bottomright" }).addTo(map);
+    map.on("click", onMapClickForNewPoint);
   }
 
   function markerIcon(status) {
@@ -472,6 +484,80 @@
     if (activePointId === pointId) {
       openPointSheet(pt); // rafraîchit la fiche si elle est ouverte sur ce point
     }
+  }
+
+  // ---------------------------------------------------------
+  // AJOUT MANUEL D'UN POINT
+  // ---------------------------------------------------------
+  function toggleAddPointMode(forceOff) {
+    addPointMode = forceOff ? false : !addPointMode;
+    const btn = document.getElementById("btn-add-point");
+    const banner = document.getElementById("add-point-banner");
+    btn.classList.toggle("is-active", addPointMode);
+    banner.hidden = !addPointMode;
+    const mapEl = document.getElementById("map");
+    mapEl.style.cursor = addPointMode ? "crosshair" : "";
+  }
+
+  function onMapClickForNewPoint(e) {
+    if (!addPointMode) return;
+    pendingNewPointLatLng = e.latlng;
+    toggleAddPointMode(true); // referme le mode ajout / la bannière
+
+    document.getElementById("new-point-coords").innerHTML = `
+      <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 2C7.6 2 4 5.6 4 10c0 5.4 8 12 8 12s8-6.6 8-12c0-4.4-3.6-8-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z" fill="currentColor"/></svg>
+      ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}
+    `;
+    document.getElementById("new-point-name").value = "";
+    document.getElementById("new-point-zone").value = "";
+    document.getElementById("new-point-city").value = activeCityFilter || "";
+    document.getElementById("new-point-sheet").hidden = false;
+  }
+
+  function closeNewPointSheet() {
+    document.getElementById("new-point-sheet").hidden = true;
+    pendingNewPointLatLng = null;
+  }
+
+  function saveNewPoint() {
+    if (!pendingNewPointLatLng) return;
+    const name = document.getElementById("new-point-name").value.trim();
+    const zone = document.getElementById("new-point-zone").value;
+    const city = document.getElementById("new-point-city").value.trim();
+
+    if (!name) {
+      showToast("Merci de donner un nom au point");
+      return;
+    }
+
+    const newPoint = {
+      id: uid("pt"),
+      name,
+      lat: pendingNewPointLatLng.lat,
+      lng: pendingNewPointLatLng.lng,
+      city: city || null,
+      zone: zone || null,
+      comment: null,
+      pairId: "",
+      pairIndex: 0,
+      status: "pending",
+      validatedAt: null,
+      route: null
+    };
+    const pairId = uid("pair");
+    newPoint.pairId = pairId;
+    const newPair = { id: pairId, pointIds: [newPoint.id] };
+
+    state.points.push(newPoint);
+    state.pairs.push(newPair);
+    saveState();
+
+    closeNewPointSheet();
+    updateCityFilterOptions();
+    rebuildMapFromState();
+    renderPointsList();
+    setStatusText(`${state.pairs.length} paire(s) — ${state.points.filter(p=>p.status==='validated').length}/${state.points.length} points validés`);
+    showToast(`Point "${name}" ajouté`);
   }
 
   function drawRoutePolyline(pairId, latlngs) {
@@ -646,7 +732,9 @@
     const pairIdx = state.pairs.indexOf(pair);
 
     document.getElementById("sheet-pair-label").textContent =
-      `Paire ${pairIdx + 1} · Point ${pt.pairIndex + 1} sur 2`;
+      pair && pair.pointIds.length === 1
+        ? "Point ajouté manuellement"
+        : `Paire ${pairIdx + 1} · Point ${pt.pairIndex + 1} sur 2`;
     document.getElementById("sheet-point-name").textContent = pt.name;
 
     const routeInfo = document.getElementById("sheet-route-info");
@@ -681,6 +769,9 @@
     const cityInput = document.getElementById("sheet-city-input");
     cityInput.value = pt.city || "";
 
+    const zoneInput = document.getElementById("sheet-zone-input");
+    zoneInput.value = pt.zone || "";
+
     const commentInput = document.getElementById("sheet-comment");
     commentInput.value = pt.comment || "";
 
@@ -693,6 +784,14 @@
     pt.city = value.trim() || null;
     saveState();
     updateCityFilterOptions();
+    renderPointsList();
+  }
+
+  function saveActivePointZone(value) {
+    const pt = state.points.find((p) => p.id === activePointId);
+    if (!pt) return;
+    pt.zone = value || null;
+    saveState();
     renderPointsList();
   }
 
@@ -1007,7 +1106,13 @@
     document.getElementById("sheet-toggle-status").addEventListener("click", toggleActivePointStatus);
     document.getElementById("sheet-navigate").addEventListener("click", navigateToActivePoint);
     document.getElementById("sheet-city-input").addEventListener("change", (e) => saveActivePointCity(e.target.value));
+    document.getElementById("sheet-zone-input").addEventListener("change", (e) => saveActivePointZone(e.target.value));
     document.getElementById("sheet-comment").addEventListener("change", (e) => saveActivePointComment(e.target.value));
+
+    document.getElementById("btn-add-point").addEventListener("click", () => toggleAddPointMode());
+    document.getElementById("btn-cancel-add-point").addEventListener("click", () => toggleAddPointMode(true));
+    document.getElementById("new-point-close").addEventListener("click", closeNewPointSheet);
+    document.getElementById("btn-save-new-point").addEventListener("click", saveNewPoint);
 
     bindSettingsInputs();
     bindZoneToggles();

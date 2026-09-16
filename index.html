@@ -56,6 +56,9 @@
         <label class="field-label">Colonne — Ville (optionnel)
           <select id="col-city"></select>
         </label>
+        <label class="field-label">Colonne — Zone ZTD/AZD/ZND (optionnel)
+          <select id="col-zone"></select>
+        </label>
         <button id="btn-apply-mapping" class="btn-primary">Valider l'import</button>
       </section>
 
@@ -141,8 +144,51 @@
   <!-- ===== CARTE ===== -->
   <main id="map"></main>
   <div id="map-legend" class="map-legend" hidden></div>
+  <button id="btn-add-point" class="fab-add-point" aria-label="Ajouter un point manuellement">
+    <svg viewBox="0 0 24 24" width="26" height="26"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+  </button>
+  <div id="add-point-banner" class="add-point-banner" hidden>
+    Touchez un emplacement sur la carte pour y placer le nouveau point
+    <button id="btn-cancel-add-point" class="add-point-cancel">Annuler</button>
+  </div>
 
   <!-- ===== FICHE POINT (modale bas d'écran) ===== -->
+  <!-- ===== FICHE NOUVEAU POINT (apres tap sur la carte) ===== -->
+  <div id="new-point-sheet" class="point-sheet" hidden>
+    <div class="point-sheet-inner">
+      <div class="point-sheet-header">
+        <div>
+          <div class="point-sheet-eyebrow">Nouveau point</div>
+          <h3>Placer un point ici</h3>
+        </div>
+        <button id="new-point-close" class="icon-btn" aria-label="Annuler">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6l12 12M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="sheet-coords-hint" id="new-point-coords"></div>
+
+      <label class="field-label sheet-city-label">Nom du point
+        <input type="text" id="new-point-name" placeholder="Ex. Parking Carrefour Nord">
+      </label>
+      <label class="field-label sheet-city-label">Zone
+        <select id="new-point-zone">
+          <option value="">— Non renseignée —</option>
+          <option value="ZTD">ZTD</option>
+          <option value="AZD">AZD</option>
+          <option value="ZND">ZND</option>
+        </select>
+      </label>
+      <label class="field-label sheet-city-label">Ville (optionnel)
+        <input type="text" id="new-point-city" placeholder="Ex. Béthune">
+      </label>
+
+      <div class="point-sheet-actions">
+        <button id="btn-save-new-point" class="btn-primary btn-full">Ajouter ce point</button>
+      </div>
+    </div>
+  </div>
+
   <div id="point-sheet" class="point-sheet" hidden>
     <div class="point-sheet-inner">
       <div class="point-sheet-header">
@@ -161,6 +207,15 @@
 
       <label class="field-label sheet-city-label">Ville
         <input type="text" id="sheet-city-input" placeholder="Non renseignée">
+      </label>
+
+      <label class="field-label sheet-city-label">Zone
+        <select id="sheet-zone-input">
+          <option value="">— Non renseignée —</option>
+          <option value="ZTD">ZTD</option>
+          <option value="AZD">AZD</option>
+          <option value="ZND">ZND</option>
+        </select>
       </label>
 
       <label class="field-label sheet-comment-label">Commentaire

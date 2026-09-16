@@ -436,6 +436,19 @@ html, body {
   flex-shrink: 0;
 }
 
+.zone-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 8px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.zone-badge-ztd { background: #DAF3E4; color: #0E8F7E; }
+.zone-badge-azd { background: #FCE1D6; color: #E85D3D; }
+.zone-badge-znd { background: #DCE6F5; color: #2563EB; }
+
 .empty-state {
   padding: 30px 14px;
   text-align: center;
@@ -512,16 +525,72 @@ html, body {
   margin-top: 12px;
   margin-bottom: 0;
 }
-.sheet-city-label input {
+.sheet-city-label input,
+.sheet-city-label select {
   display: block;
   width: 100%;
   margin-top: 6px;
   padding: 10px 12px;
   font-size: 0.9rem;
+  font-family: inherit;
   border: 1px solid var(--line);
   border-radius: var(--radius-s);
   background: var(--paper);
   color: var(--ink);
+}
+
+/* ---------- BOUTON FLOTTANT "AJOUTER UN POINT" ---------- */
+.fab-add-point {
+  position: fixed;
+  right: 16px;
+  bottom: calc(70px + var(--safe-bottom));
+  z-index: 500;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, var(--signal-bright), var(--signal));
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(14, 143, 126, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.fab-add-point:active { background: var(--signal-strong); }
+.fab-add-point.is-active {
+  background: var(--alert);
+  box-shadow: 0 4px 14px rgba(232, 93, 61, 0.4);
+}
+
+.add-point-banner {
+  position: fixed;
+  left: 50%;
+  top: calc(90px + var(--safe-top));
+  transform: translateX(-50%);
+  z-index: 600;
+  background: var(--ink);
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 30px;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: var(--shadow);
+  max-width: 90vw;
+  text-align: center;
+}
+.add-point-cancel {
+  border: none;
+  background: rgba(255,255,255,0.18);
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 .sheet-comment-input {
   display: block;
