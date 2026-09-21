@@ -113,7 +113,22 @@
       </section>
 
       <section class="panel-section">
-        <h3>5. Sauvegarde</h3>
+        <h3>5. Trace de parcours</h3>
+        <div id="track-status" class="track-status">
+          <span id="track-status-dot" class="track-status-dot"></span>
+          <span id="track-status-text">Aucune trace enregistrée</span>
+        </div>
+        <div id="track-stats" class="track-stats" hidden>
+          <span id="track-distance">0 km</span>
+          <span id="track-duration">0 min</span>
+        </div>
+        <button id="btn-track-toggle" class="btn-primary btn-full">Démarrer la trace</button>
+        <button id="btn-track-clear" class="btn-danger btn-full">Effacer la trace</button>
+        <div class="field-hint">Sur iPhone, la trace peut s'interrompre si vous verrouillez l'écran ou quittez Safari — gardez l'app au premier plan pendant l'enregistrement.</div>
+      </section>
+
+      <section class="panel-section">
+        <h3>6. Sauvegarde</h3>
         <div class="btn-group">
           <button id="btn-export" class="btn-secondary">Exporter (JSON)</button>
           <label class="btn-secondary file-input-label" for="json-input">Importer (JSON)</label>

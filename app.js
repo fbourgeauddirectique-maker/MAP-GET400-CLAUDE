@@ -24,7 +24,8 @@
     points: [],
     pairs: [],
     settings: { durMin: 15, durMax: 20, apiKey: "" },
-    rawImport: null
+    rawImport: null,
+    track: { points: [], recording: false, startedAt: null }
   };
 
   let map, userMarker, userAccuracyCircle;
@@ -35,6 +36,7 @@
   let activeCityFilter = null; // null = toutes les villes
   let addPointMode = false;
   let pendingNewPointLatLng = null;
+  let trackLayer = null; // L.Polyline de la trace enregistree
 
   // ---------------------------------------------------------
   // ZONES REGLEMENTAIRES (ZTD / AZD / ZND) — multi-villes
@@ -715,12 +717,143 @@
           userAccuracyCircle.setLatLng([latitude, longitude]);
           userAccuracyCircle.setRadius(accuracy);
         }
+        recordTrackPoint(latitude, longitude, accuracy);
       },
       (err) => {
         console.warn("Géolocalisation refusée ou indisponible", err);
       },
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
     );
+  }
+
+  // ---------------------------------------------------------
+  // TRACE DE PARCOURS (enregistrement du chemin reellement suivi)
+  // ---------------------------------------------------------
+  const MIN_TRACK_DISTANCE_M = 8; // ne pas ajouter de point si on a bouge de moins de 8 m
+  let lastTrackSaveCount = 0;
+
+  function recordTrackPoint(lat, lng, accuracy) {
+    if (!state.track.recording) return;
+    // Ignore les positions trop imprecises (GPS pas encore stabilise)
+    if (accuracy && accuracy > 50) return;
+
+    const pts = state.track.points;
+    if (pts.length > 0) {
+      const last = pts[pts.length - 1];
+      const d = haversine_km_track(last.lat, last.lng, lat, lng) * 1000;
+      if (d < MIN_TRACK_DISTANCE_M) return;
+    }
+    pts.push({ lat, lng, t: Date.now() });
+    updateTrackLayer();
+    updateTrackStats();
+
+    // Sauvegarde locale toutes les ~10 points seulement, pour ne pas
+    // surcharger le stockage a chaque position recue
+    if (pts.length - lastTrackSaveCount >= 10) {
+      saveState();
+      lastTrackSaveCount = pts.length;
+    }
+  }
+
+  function haversine_km_track(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const toRad = (d) => (d * Math.PI) / 180;
+    const dphi = toRad(lat2 - lat1);
+    const dlambda = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dphi / 2) ** 2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dlambda / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(a));
+  }
+
+  function updateTrackLayer() {
+    const latlngs = state.track.points.map((p) => [p.lat, p.lng]);
+    if (!trackLayer) {
+      trackLayer = L.polyline(latlngs, {
+        color: "#2563EB",
+        weight: 4,
+        opacity: 0.75,
+        dashArray: "1, 8",
+        lineCap: "round"
+      }).addTo(map);
+    } else {
+      trackLayer.setLatLngs(latlngs);
+    }
+  }
+
+  function updateTrackStats() {
+    const pts = state.track.points;
+    const statsEl = document.getElementById("track-stats");
+    if (!pts.length) {
+      statsEl.hidden = true;
+      return;
+    }
+    let distKm = 0;
+    for (let i = 1; i < pts.length; i++) {
+      distKm += haversine_km_track(pts[i - 1].lat, pts[i - 1].lng, pts[i].lat, pts[i].lng);
+    }
+    const durationMs = pts[pts.length - 1].t - pts[0].t;
+    const durationMin = Math.round(durationMs / 60000);
+    document.getElementById("track-distance").textContent = `${distKm.toFixed(1)} km`;
+    document.getElementById("track-duration").textContent = `${durationMin} min`;
+    statsEl.hidden = false;
+  }
+
+  function updateTrackStatusUI() {
+    const dot = document.getElementById("track-status-dot");
+    const text = document.getElementById("track-status-text");
+    const btn = document.getElementById("btn-track-toggle");
+    const hasPoints = state.track.points.length > 0;
+
+    dot.classList.toggle("recording", state.track.recording);
+    btn.classList.toggle("is-recording", state.track.recording);
+    btn.textContent = state.track.recording
+      ? "Mettre en pause"
+      : hasPoints
+      ? "Reprendre la trace"
+      : "Démarrer la trace";
+
+    if (state.track.recording) {
+      text.textContent = "Enregistrement en cours…";
+    } else if (hasPoints) {
+      text.textContent = "En pause";
+    } else {
+      text.textContent = "Aucune trace enregistrée";
+    }
+  }
+
+  function toggleTracking() {
+    if (!state.track.recording) {
+      if (!("geolocation" in navigator)) {
+        showToast("Géolocalisation non disponible sur cet appareil");
+        return;
+      }
+      state.track.recording = true;
+      if (!state.track.startedAt) state.track.startedAt = new Date().toISOString();
+      showToast("Enregistrement de la trace démarré");
+    } else {
+      state.track.recording = false;
+      showToast("Trace mise en pause");
+    }
+    saveState();
+    updateTrackStatusUI();
+  }
+
+  function clearTrack() {
+    if (!state.track.points.length) return;
+    if (!confirm("Effacer la trace de parcours enregistrée ? Cette action est irréversible.")) {
+      return;
+    }
+    state.track = { points: [], recording: false, startedAt: null };
+    lastTrackSaveCount = 0;
+    if (trackLayer) {
+      map.removeLayer(trackLayer);
+      trackLayer = null;
+    }
+    saveState();
+    updateTrackStatusUI();
+    updateTrackStats();
+    showToast("Trace effacée");
   }
 
   // ---------------------------------------------------------
@@ -1098,6 +1231,8 @@
       if (e.target.files[0]) importStateFromFile(e.target.files[0]);
     });
     document.getElementById("btn-reset").addEventListener("click", resetTournee);
+    document.getElementById("btn-track-toggle").addEventListener("click", toggleTracking);
+    document.getElementById("btn-track-clear").addEventListener("click", clearTrack);
     document.getElementById("btn-recalculate-routes").addEventListener("click", recalculateAllRoutes);
 
     document.getElementById("drawer-handle").addEventListener("click", toggleDrawer);
@@ -1132,6 +1267,11 @@
     updateCityFilterOptions();
     rebuildMapFromState();
     renderPointsList();
+    updateTrackStatusUI();
+    updateTrackStats();
+    if (state.track.points.length) {
+      updateTrackLayer();
+    }
 
     if (state.pairs.length) {
       setStatusText(`${state.pairs.length} paire(s) — ${state.points.filter(p=>p.status==='validated').length}/${state.points.length} points validés`);
