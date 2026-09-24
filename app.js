@@ -464,9 +464,28 @@
   function onPointDragged(pointId, marker) {
     const pt = state.points.find((p) => p.id === pointId);
     if (!pt) return;
-    const { lat, lng } = marker.getLatLng();
-    pt.lat = lat;
-    pt.lng = lng;
+    const { lat: newLat, lng: newLng } = marker.getLatLng();
+    const originalLat = pt.lat;
+    const originalLng = pt.lng;
+
+    // Deplacement minime (< 3 m) : probablement un effleurement involontaire,
+    // on l'ignore sans meme demander confirmation
+    const movedMeters = haversine_km_track(originalLat, originalLng, newLat, newLng) * 1000;
+    if (movedMeters < 3) {
+      marker.setLatLng([originalLat, originalLng]);
+      return;
+    }
+
+    const confirmed = confirm(
+      `Déplacer "${pt.name}" à cet emplacement ?\n\nCela invalidera l'itinéraire calculé pour ce point.`
+    );
+    if (!confirmed) {
+      marker.setLatLng([originalLat, originalLng]); // remet le marqueur a sa place
+      return;
+    }
+
+    pt.lat = newLat;
+    pt.lng = newLng;
 
     // L'itinéraire calculé pour la paire n'est plus valide après un déplacement
     const pair = state.pairs.find((p) => p.id === pt.pairId);
